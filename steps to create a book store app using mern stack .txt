@@ -1,0 +1,2331 @@
+create 2 seprate folders for frontend and backend 
+
+
+->then on terminal go to backend and run -> npm init -y
+
+now inside that package folder add a new line below description  ->   "type": "module", THIS WILL ALLOW US to use syntax of 
+import and export
+
+
+now lets add express js and nodemon -> npm i express nodemon
+
+now coming back to our package .json we add scripts =>  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+
+  this will help us to run and start our project properly 
+
+  Now we create a file -> index.js (this file will be the starter of our project)
+  NOW inside index.js we import express first ->import express from "express";
+  
+  then we create a variable for it->const app = express();
+  
+  Now we need a function for listening to this port so now in our index.js ->
+   //function to listen to our port 
+const port = 5555; // You can choose any available port
+app.listen(port, () => {
+    console.log(`Server listening on port ${port}`);
+});
+
+  that is how  we make it listen to a port -> using app.listen
+
+  NOW WE HAVE A BASIC SERVOR TILL HERE 
+
+-------------------------------------------------------------------------------------------------------
+SETTING UP OUR FIRST ROUTE ->
+
+now as we go to localhost:5555 -> we see a message of can not get it is because we haven't defined a route for our server's default 
+get call which is to "/"
+
+so now we come back to our index.js and start setting up our routes one one using app.get method inside which the 1st parameter always
+is a string for our route and the 2nd parameter is a callback function that handles this request  (this callback function will receive 
+both request and response and we can handle both of them )-> 
+
+example for the home route we can log the request and also send some response text with a 234 status code ->
+app.get("/" , ()=>{request,response
+console.log(request);
+return response.status(234).send("Welcome To Mern Stack Book Store Project ")
+})
+
+//now on hitting the "/" route we will be able to see this message on our screen => "Welcome To Mern Stack Book Store Project "
+  
+========================================================================================================================
+
+Now lets add a mongodb database to our project -> 
+
+we are using atlas here -> go to mongodb site and -> atlas  ->Name your new project book store ->  build a database -> give a name to 
+your database -> Book-Store-Mern 
+
+-> add your current ip address -> then save your password somewhere -> IQmCLEyDEhlDOUeK
+-> then click create user -> click finish and close -> now go to connect option and 
+copy the connection string from there ->
+ mongodb+srv://adityamehto19:<password>@book-store-mern.rlpfsvf.mongodb.net/?retryWrites=true&w=majority
+
+ Now replace the password from it with your actual password and before the ? add a collection name to your project accordingly ->
+ mongodb+srv://adityamehto19:IQmCLEyDEhlDOUeK@book-store-mern.rlpfsvf.mongodb.net/books-collection?retryWrites=true&w=majority
+
+password is -> IQmCLEyDEhlDOUeK
+collection name is -> books-collection
+
+
+** AND FOR WORKING WITH MONGODB database WE NEED MONGOOSE LIBRARY-> npm i mongoose **
+
+now we import mongoose in our index.js file -> import mongoose from "mongoose";
+
+REMEMBER WE USE mongoose.connect method to connect to our database -> create a const to store your mongodb atlas connection string 
+and then use it inside the mongoose .connect method to enable database connection
+and we also use .then and .catch block on our mongoose.connect method which will help use with logging the connection success or failure
+
+i.e-> 
+const mongoUrl ="mongodb+srv://adityamehto19:IQmCLEyDEhlDOUeK@book-store-mern.rlpfsvf.mongodb.net/books-collection?retryWrites=true&w=majority"
+mongoose.connect(mongoUrl).then((result) => {
+   console.log("Connected To MongoDB") 
+}).catch((err) => {
+    console.log(err)
+}); 
+
+now once you see your database connection message on the console we are good to go 
+
+********ALSO WE WANT OUR EXPRESS SERVER TO ONLY RUN IF OUR database connection IS SUCCESSFUL SO WE SIMPLY CUT THE APP.LISTEN PART FROM 
+ABOVE AND THE PASTE IT IN THE .THEN BLOCK OF THE CODE OF MONGOOSE connect METHOD 
+I.E->
+   mongoose.connect(mongoUrl).then((result) => {
+   console.log("Connected To MongoDB")
+   app.listen(port, () => {
+    console.log(`Server listening on port ${port}`);
+}); 
+}).catch((err) => {
+    console.log(err)
+});
+
+=======================================================================================================================
+NOW we create our model with mongoose 
+
+Creating a model in our index.js is not a good idea  so we create a models folder and create our model there and also define its schema 
+inside this models folder we keep all of our models 
+
+import mongoose from "mongoose";
+
+const bookSchema = mongoose.Schema({
+    title: {
+        type: String,
+        required: true,
+    },
+    author: {
+        type: String,
+        required: true,
+    },
+    publishYear: {
+        type: Number,
+        required: true,
+    },
+}, {
+    timestamps: true,  // Place timestamps here, outside the object
+});
+
+export const Book = mongoose.model('Book', bookSchema);
+
+
+==============================================================================================================
+NOW AS WE HAVE OUR BOOK MODEL READY WE USE THIS BOOK MODEL TO SAVE A NEW BOOK -> COMING BACK TO OUR INDEX.js
+
+we firstly need to import our book model -> import { Book } from "./models/bookModels";
+
+then REMEMBER INORDER TO CREATE AND SAVE A NEW BOOK WE WILL BE NEEDING A NEW ROUTE SO we use app.post() method below our app.get ->
+
+app.post method is usually used to create a new post -> 
+
+we start by calling in the app.post method and 1stly giving its first parameter that is the string that triggers that book creation route
+then we use a async function on it which will have both request and response in it so inside this async function REMEMBER TO ADD IN A 
+BASIC BUT QUICK VALIDATION SO THAT WE CAN ENSURE THAT THE USER IS GIVING ALL THE NECESSARY INPUTS AS REQUIRED TO CREATE A NEW BOOK 
+i.e-> so inside a try catch block use if conditionals to check user entries and if not sufficient then just return a message to fill 
+all the required entries 
+
+Then we create a variable for new books with our request.body and store the title , author , publishYear in it 
+
+Then we simply call .create method on book to save this new book and send this book to newBook 
+ 
+and then finally we send this new book as the response to the client 
+
+//Route to save new book 
+app.post("/books" , async(request,response) => {
+try {
+    if(
+       !request.body.title     ||
+       !request.body.author    ||
+       !request.body.publishYear
+      ){
+        return response.status(400).send({
+            message: 'Send All The Required Fields : title , author , publishYear'
+        });
+      }
+
+//creating a variable for new book
+const newBook = {
+    title:request.body.title,
+    author:request.body.author,
+    publishYear:request.body.publishYear
+};
+
+const book = await Book.create(newBook);
+
+return response.status(201).send(book);
+
+} catch (error) {
+ console.log(error.message);
+ response.status(500).send({message: error.message});  
+}
+})
+
+
+
+//Now till here we have 2 routes one for home and another for creating a new book which follows our book schema and also this new book 
+creation route has a short validation which ensures that the user has filled up the entire data which is required before hitting the 
+post method and then after 
+
+
+**TESTING OUR POST ROUTE**
+once we created this route we now use Thunder Client extension to test this post route 
+**ALSO REMEMBER THAT FOR USING JOSN WE NEED TO ENABLE IT IN OUR CODE USING THE USE EXPRESS.JSON METOD ABOVE ANY KIND OF GET OR POST REQ->
+//THIS ENABLES US TO BE ABLE TO USE JSON FOR TESTING AND OTHER QUERIES 
+app.use(express.json());
+
+NOW WE GO TO THUNDER CLIENT SELECT POST METHOD -> SPECIFY THE ADDRESS -> http://localhost:5555/books
+->THEN IN THE BODY PART WE USE JSON TO CREATE A NEW BOOK example-> 
+{
+  "title": "Test Book 1",
+  "author": "Test Author 1",
+  "publishYear": "2023"
+}
+
+NOW IF ON SENDING THE POST REQUEST YOU ARE ABLE TO SEE A BOOK BEING CREATED WE ARE NOW GOOD TO GO 
+
+
+//NOW WE CREATE ANOTHER ROUTE TO GET ALL BOOKS FROM OUR DATABASE 
+WE USE APP.GET -> 
+//Route to get all books from the database 
+app.get("/getallBooks" , async(request, response)=>{
+    try {
+        const books = await Book.find({});
+        return response.status(200).json({
+            count: books.length,
+            data:books
+        });
+    } catch (error) {
+        console.log(error.message)
+        response.status(500).send({message: error.message});
+    }
+})
+
+this get function also works in the same way -> we have the 1st parameter that defines the route and then the 2nd parameter that 
+triggers the fetch part using .find method on our Book model and then after we return the length of the books fetched which denotes 
+total number of books in the database and the details of those books 
+and we handle the error part in the catch section 
+
+================================================================================
+
+Now we create another route for fetching a single book using the id that is handled by mongodb atlas 
+it also has to be defined in the same way just we need to destructure the id  from our request.params and we need to 
+store the fetched data inside a book variable denoting a single book and we use .findById method on our book model and 
+pass in the id variable to it that we destructured before
+ then we need to return this varibale  after fetching the data 
+
+//Route to fetch a single book by ID given by our database -> atlas
+app.get("/books/:id", async(request,response)=>{
+    try {
+        
+        //we start by destructuring our id from our request 
+const {id} = request.params;
+const book = await Book.findById(id);
+return response.status(200).json(book);
+    } catch (error) {
+        console.log(error.message);
+        response.status(500).send({message: error.message});
+        
+    }
+}) 
+
+Now to test this end point we need to simply go to the atlas from there we copy the id and append it to our end point -> 
+http://localhost:5555/books/658d3d4abeadf9d56871037e
+
+now if as a output you are able to see the book of the same id being fetched you are good to go 
+
+-------------------------------------------------------------------------------------------------------
+
+NOW we define a route to update books 
+
+//for updation we will be needing both request.params and request.body and also in cases id
+//as in the same way when we were creating a book we added in fields validation so here also while updating we will do the same
+
+//we use app.put and findByIdAndUpdate method to update our book and 
+REMEMBER TO ADD an await to the update method because it will result to an error if we don't do so it happens because our update method 
+does not run that fast to update records held in the database so if we don't add await it will when the update method executes , return 
+task done in response whilst in reality the record is not yet been updated 
+
+// also to test this updation go to thunderclient and update the end point and give a updation body accordingly 
+app.put("/updateBook/:id", async(request,response)=>{
+    try {
+        if(
+            !request.body.title     ||
+            !request.body.author    ||
+            !request.body.publishYear
+           ){
+             return response.status(400).send({
+                 message: 'Send All The Required Fields : title , author , publishYear'
+             });
+           }
+
+      //we destructure our id from request.params   
+      const {id}= request.params;
+
+//Note here we need to add this await and , {new:true} for this update method to work properly 
+      const result = await Book.findByIdAndUpdate(id,request.body , {new: true});
+
+      if(!result){
+        return response.status(404).json({message: "Book Not Found !"});
+      } else{
+        return response.status(200).send({message: "Book Updated Successfully."});
+            } 
+
+    } catch (error) {
+      console.log(error);
+      response.status(500).send({message:error.message});  
+    }
+})
+
+----------------------------------------------------------------------------------------------------------------------------
+
+//Deletion ROUTE 
+we simply need the id for deletion from request.params 
+and we use findByIdAndDelete method to delete the record from the database
+
+//deletion route 
+app.delete("/deleteBook/:id", async(request,response)=>{
+    try {
+        //we destructure the id 
+        const {id}= request.params;
+
+        const result = await Book.findByIdAndDelete(id);
+
+        //now we check if our result is false we return book not found else we return book deleted successfully
+        if(!result){
+            return response.status(404).json({message: "Book Not Found !"})
+        }else{
+            return response.status(200).send({message: "Book Deleted Successfully."});
+        }
+
+    } catch (error) {
+        console.log(error);
+        response.status(500).send({message:error.message});
+    }
+})
+
+now test on thunderclient it will delete the record from the backend and also if you try to get that book againg using the app.get
+the resultant output of the query will be null which is the verification of the fact that the book is deleted successfully
+
+------------------------------------------------------------------------------------------------------------------------------------
+
+TILL HERE WE HAVE OUR CORRECTLY WORKING ROUTES FOR -> CREATE , READONE , READALL , UPDATE , DELETE AND TILL HERE THE ENTIRE INDEX.JS
+CODE LOOKS LIKE THIS :->
+
+
+import express, { request, response } from "express";
+import mongoose from "mongoose";
+import { Book } from "./models/bookModels.js";
+
+const app = express();
+
+//THIS ENABLES US TO BE ABLE TO USE JSON FOR TESTING AND OTHER QUERIES 
+app.use(express.json());
+
+
+//setting up our routes 
+app.get("/",(request, response)=>{
+console.log(request);
+return response.status(234).send("Welcome To Mern Stack Book Store Project ")
+});
+
+
+//Route to Create/save new book  
+app.post("/books" , async(request,response) => {
+try {
+    if(
+       !request.body.title     ||
+       !request.body.author    ||
+       !request.body.publishYear
+      ){
+        return response.status(400).send({
+            message: 'Send All The Required Fields : title , author , publishYear'
+        });
+      }
+
+//creating a variable for new book
+const newBook = {
+    title:request.body.title,
+    author:request.body.author,
+    publishYear:request.body.publishYear
+};
+
+const book = await Book.create(newBook);
+
+return response.status(201).send(book);
+
+} catch (error) {
+ console.log(error.message);
+ response.status(500).send({message: error.message});  
+}
+})
+
+
+//Route to get all books from the database 
+app.get("/getallBooks" , async(request, response)=>{
+    try {
+        const books = await Book.find({});
+        return response.status(200).json({
+            count: books.length,
+            data:books
+        });
+    } catch (error) {
+        console.log(error.message)
+        response.status(500).send({message: error.message});
+    }
+})
+
+
+//Route to fetch a single book by ID given by our database -> atlas
+app.get("/books/:id", async(request,response)=>{
+    try {
+        
+        //we start by destructuring our id from our request 
+const {id} = request.params;
+const book = await Book.findById(id);
+return response.status(200).json(book);
+    } catch (error) {
+        console.log(error.message);
+        response.status(500).send({message: error.message});
+        
+    }
+})
+
+
+//UPDATION ROUTES
+//Route To Update A Book With Mongoose
+//for updation we will be needing both request.params and request.body and also in cases id
+//as in the same way when we were creating a book we added in fields validation so here also while updating we will do the same 
+app.put("/updateBook/:id", async(request,response)=>{
+    try {
+        if(
+            !request.body.title     ||
+            !request.body.author    ||
+            !request.body.publishYear
+           ){
+             return response.status(400).send({
+                 message: 'Send All The Required Fields : title , author , publishYear'
+             });
+           }
+        
+      const {id}= request.params;
+
+      const result = await Book.findByIdAndUpdate(id,request.body , {new: true});
+
+      if(!result){
+        return response.status(404).json({message: "Book Not Found !"});
+      } else{
+        return response.status(200).send({message: "Book Updated Successfully."});
+            } 
+
+    } catch (error) {
+      console.log(error);
+      response.status(500).send({message:error.message});  
+    }
+})
+
+
+//deletion route 
+app.delete("/deleteBook/:id", async(request,response)=>{
+    try {
+        //we destructure the id 
+        const {id}= request.params;
+
+        const result = await Book.findByIdAndDelete(id);
+
+        //now we check if our result is false we return book not found else we return book deleted successfully
+        if(!result){
+            return response.status(404).json({message: "Book Not Found !"})
+        }else{
+            return response.status(200).send({message: "Book Deleted Successfully."});
+        }
+
+    } catch (error) {
+        console.log(error);
+        response.status(500).send({message:error.message});
+    }
+})
+
+
+//function to listen to our port 
+const port = 5555; // You can choose any available port
+
+
+const mongoUrl ="mongodb+srv://adityamehto19:IQmCLEyDEhlDOUeK@book-store-mern.rlpfsvf.mongodb.net/books-collection?retryWrites=true&w=majority"
+mongoose.connect(mongoUrl).then((result) => {
+   console.log("Connected To MongoDB")
+   app.listen(port, () => {
+    console.log(`Server listening on port ${port}`);
+}); 
+}).catch((err) => {
+    console.log(err)
+}); 
+
+
+
+====================================================================================================================================
+***********************************************************************************************************************************
+====================================================================================================================================
+NOW WE REFACTOR NODE JS WITH EXPRESS JS ROUTER 
+
+THE NEED OF REFACTORING IS THAT SUPPOSE THIS IS ONLY ONE MODEL BUT WHAT IF THERE WERE 5 MODELS AND WE NEED 5 ROUTES FOR EVERY SINGLE 
+ONE OF THEM I.E -> CREATE , READONE , READALL , UPDATE , DELETE SO WE WILL BE CREATING 25 ROUTES THEN 
+AND ITS NOT A GOOD PRACTICE SO WE IN THIS CASE USE EXPRESS ROUTER 
+
+
+NOW CUT ALL OF THESE ROUTES THAT WE JUST CREATED 
+AND CREATE A NEW  FOLDER NAMED ROUTES AND INSIDE IT CREATE A FILE NAMED BOOKROUTES.JS AND PASTE ALL OF THEM INSDIDE IT 
+
+now we need express router => so inside this bookRoutes.js file at the top ->
+
+we import express and then extract router from our express ->import express from "express";
+and also we import our book model -> import { Book } from "./models/bookModels.js";
+then we destructure router from our express and finally replace our app function with router. and then export the router as default in
+end 
+
+i.e->
+import express from "express";
+import { Book } from "./models/bookModels.js";
+
+const router = express.Router();
+//now simply instead of apps we can use this router ex router.get , router.put etc so change the app. --> to router.
+//and at the end we export this router as default router
+
+//setting up our routes
+
+
+//Route to Create/save new book
+router.post("/books", async (request, response) => {
+  try {
+    if (
+      !request.body.title ||
+      !request.body.author ||
+      !request.body.publishYear
+    ) {
+      return response.status(400).send({
+        message: "Send All The Required Fields : title , author , publishYear",
+      });
+    }
+
+    //creating a variable for new book
+    const newBook = {
+      title: request.body.title,
+      author: request.body.author,
+      publishYear: request.body.publishYear,
+    };
+
+    const book = await Book.create(newBook);
+
+    return response.status(201).send(book);
+  } catch (error) {
+    console.log(error.message);
+    response.status(500).send({ message: error.message });
+  }
+});
+
+//Route to get all books from the database READ ALL
+router.get("/getallBooks", async (request, response) => {
+  try {
+    const books = await Book.find({});
+    return response.status(200).json({
+      count: books.length,
+      data: books,
+    });
+  } catch (error) {
+    console.log(error.message);
+    response.status(500).send({ message: error.message });
+  }
+});
+
+//Route to fetch a single book by ID given by our database -> atlas READ ONE
+router.get("/books/:id", async (request, response) => {
+  try {
+    //we start by destructuring our id from our request
+    const { id } = request.params;
+    const book = await Book.findById(id);
+    return response.status(200).json(book);
+  } catch (error) {
+    console.log(error.message);
+    response.status(500).send({ message: error.message });
+  }
+});
+
+//UPDATION ROUTES
+//Route To Update A Book With Mongoose
+//for updation we will be needing both request.params and request.body and also in cases id
+//as in the same way when we were creating a book we added in fields validation so here also while updating we will do the same
+router.put("/updateBook/:id", async (request, response) => {
+  try {
+    if (
+      !request.body.title ||
+      !request.body.author ||
+      !request.body.publishYear
+    ) {
+      return response.status(400).send({
+        message: "Send All The Required Fields : title , author , publishYear",
+      });
+    }
+
+    const { id } = request.params;
+
+    const result = await Book.findByIdAndUpdate(id, request.body, {
+      new: true,
+    });
+
+    if (!result) {
+      return response.status(404).json({ message: "Book Not Found !" });
+    } else {
+      return response
+        .status(200)
+        .send({ message: "Book Updated Successfully." });
+    }
+  } catch (error) {
+    console.log(error);
+    response.status(500).send({ message: error.message });
+  }
+});
+
+//deletion route
+router.delete("/deleteBook/:id", async (request, response) => {
+  try {
+    //we destructure the id
+    const { id } = request.params;
+
+    const result = await Book.findByIdAndDelete(id);
+
+    //now we check if our result is false we return book not found else we return book deleted successfully
+    if (!result) {
+      return response.status(404).json({ message: "Book Not Found !" });
+    } else {
+      return response
+        .status(200)
+        .send({ message: "Book Deleted Successfully." });
+    }
+  } catch (error) {
+    console.log(error);
+    response.status(500).send({ message: error.message });
+  }
+});
+
+
+//we need now to export this router -> 
+export default router ;
+
+
+now go to index.js and import bookRoutes from its route and here we start using it as a MIDDLEWARE
+
+then we use a middleware for /books ->->->-> and we can pass bookRoutes to it  THIS WILL TELL OUR EXPRESS.JS THAT FOR EVERY TIME YOU
+ENCOUNTER /BOOKS -----> HANDLE THEM WITH THIS MIDDLEWARE 
+I.E-> app.use('/books',bookRoutes); 
+
+--------------------
+NOTE:-
+Now we come back to our bookRoutes.js file and because in our routes the /books /deletebook /updatebook this all is redundant we will
+delete that part 
+
+i.e->
+import express from "express";
+import { Book } from "../models/bookModels.js";
+
+
+const router = express.Router();
+//now simply instead of apps we can use this router ex router.get , router.put etc so change the app. --> to router.
+//and at the end we export this router as default router
+
+//setting up our routes
+
+
+//Route to Create/save new book
+router.post("/", async (request, response) => {
+  try {
+    if (
+      !request.body.title ||
+      !request.body.author ||
+      !request.body.publishYear
+    ) {
+      return response.status(400).send({
+        message: "Send All The Required Fields : title , author , publishYear",
+      });
+    }
+
+    //creating a variable for new book
+    const newBook = {
+      title: request.body.title,
+      author: request.body.author,
+      publishYear: request.body.publishYear,
+    };
+
+    const book = await Book.create(newBook);
+
+    return response.status(201).send(book);
+  } catch (error) {
+    console.log(error.message);
+    response.status(500).send({ message: error.message });
+  }
+});
+
+//Route to get all books from the database READ ALL
+router.get("/", async (request, response) => {
+  try {
+    const books = await Book.find({});
+    return response.status(200).json({
+      count: books.length,
+      data: books,
+    });
+  } catch (error) {
+    console.log(error.message);
+    response.status(500).send({ message: error.message });
+  }
+});
+
+//Route to fetch a single book by ID given by our database -> atlas READ ONE
+router.get("/:id", async (request, response) => {
+  try {
+    //we start by destructuring our id from our request
+    const { id } = request.params;
+    const book = await Book.findById(id);
+    return response.status(200).json(book);
+  } catch (error) {
+    console.log(error.message);
+    response.status(500).send({ message: error.message });
+  }
+});
+
+//UPDATION ROUTES
+//Route To Update A Book With Mongoose
+//for updation we will be needing both request.params and request.body and also in cases id
+//as in the same way when we were creating a book we added in fields validation so here also while updating we will do the same
+router.put("/:id", async (request, response) => {
+  try {
+    if (
+      !request.body.title ||
+      !request.body.author ||
+      !request.body.publishYear
+    ) {
+      return response.status(400).send({
+        message: "Send All The Required Fields : title , author , publishYear",
+      });
+    }
+
+    const { id } = request.params;
+
+    const result = await Book.findByIdAndUpdate(id, request.body, {
+      new: true,
+    });
+
+    if (!result) {
+      return response.status(404).json({ message: "Book Not Found !" });
+    } else {
+      return response
+        .status(200)
+        .send({ message: "Book Updated Successfully." });
+    }
+  } catch (error) {
+    console.log(error);
+    response.status(500).send({ message: error.message });
+  }
+});
+
+//deletion route
+router.delete("/:id", async (request, response) => {
+  try {
+    //we destructure the id
+    const { id } = request.params;
+
+    const result = await Book.findByIdAndDelete(id);
+
+    //now we check if our result is false we return book not found else we return book deleted successfully
+    if (!result) {
+      return response.status(404).json({ message: "Book Not Found !" });
+    } else {
+      return response
+        .status(200)
+        .send({ message: "Book Deleted Successfully." });
+    }
+  } catch (error) {
+    console.log(error);
+    response.status(500).send({ message: error.message });
+  }
+});
+
+
+export default router;
+--------------------
+NOW as you see we have deleted the end points main identification part now you might be thinking that how will this work how will we
+specifically get to the various end points so that we can do the CRUD part successfully , NOW THIS WILL BE HANDLED BY THE REQUEST 
+NATURE that is if in our thunder client we try testing our routes and go to ->http://localhost:5555/books
+and have a post request with body -> 
+{
+  "title": "Book3",
+  "author": "Test Author 3",
+  "publishYear": "2023"
+}
+This will create a book in the same way we just have to change the nature of our requests from get to post to delete to update etc 
+and the EXPRESS ROUTING will handle the task in hand successfully 
+
+--------------------------------------------------------------------------------------------------------------------------------------
+
+                                                           CORS POLICY
+[NOTE this is a very NECESSARY step as without it we would face error while trying to handle the data fetch etc process from our react
+application and therefore we will be getting a blocked BY CORS POLICY ERROR IN OUR CONSOLE WHEN WE SEND AN AXIOS.FETCH REQUEST]
+
+To handle cors error we need to install a new package in our backend  -> npm i cors  
+
+-> THEN WE IMPORT CORS IN OUR INDEX.JS file->import cors from 'cors'
+and use it  below our app.use function  and IT MUST BE USED AS A MIDDLEWARE -> i.e-->
+
+// -------------------------------------CORS POLICY HANDLING FOR FRONTEND 
+//Middleware to handle cors policy 
+// 1st way is simply to allow every route -> app.use(cors()); but by using this way we allow every one to access the data with our 
+//endpoints 
+// app.use(cors()); so this is why in general this method is not used that frequently
+
+// instead we can use this second method ------------> Allowing Custom Origins by using this way we have more control on our routing
+app.use(
+    cors({
+        origin: 'http://localhost:3000',
+        methods: ['GET','POST','PUT','DELETE'],
+        allowedHeaders: ['Content-Type'],
+    })
+)
+// ------------------------------------- Now only the clients with these origins can ACCESS OUR SERVERS 
+
+[Note --> ***Remember that we need to use this cors handling before the implementation of route handling else it will start giving you 
+error while fetching the data on frontend *** ---> app.use(cors());   and then ---> app.use('/books', bookRoutes);]
+--------------------------------------------------------------------------------------------------------------------------------------
+
+******************************************************NOW WE CREATE OUR FRONTEND******************************************************
+
+--> Creating REACT PROJECT WITH VITE and tailwind css
+
+open a terminal in our main folder and  type -> npm create vite@latest
+project name -> Frontend -> select react -> select javascript and you now have a basic vite based react app ready to be customized 
+
+--> NOW change your directory by -> cd Frontend -> and hit command -> npm i 
+
+AFTER THAT NOW LETS ADD TAILWIND CSS TO OUR PROJECT -> OPEN TAILWIND CSS WEBSITE -> get started -> framework guide -> select vite 
+-> copy and run the 1st installation command -> npm install -D tailwindcss postcss autoprefixer
+-> then run the second command -> npx tailwindcss init -p
+->Then copy this content and paste it in our tailwind config file ->
+ [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
+
+-> Copy these three lines and paste them in index.css after deleting everything that is in there already ->i.e->
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+->then delete app.css
+
+====> THEN GO TO APP.JSX -> delete everything and then use command rafce to create a new react arrow functional component with the help
+of an extension 
+
+now lets use some classes to test that our code runs fine example in the App div -> className='bg-red-400 text-white'
+
+example --> 
+import React from 'react'
+
+const App = () => {
+  return (
+    <div className='bg-red-400 text-white'>App</div>
+  )
+}
+
+export default App
+
+
+================================> Now Lets RUN our project using npm run dev to test if our project is working or not -> 
+go to localhost:5173 to see that our react project runs and if our tailwind classes are being applied
+
+--------------------------------------------------------------------------------------------------------------------------------------
+
+****Single Page Application and ADD REACT ROUTER DOM**** 
+we want to have a single page application so that our application does'nt refreshes itself ON PAGE CHANGING 
+
+now open a new terminal on frontend and install ---> npm i react-router-dom 
+
+----> using REACT ROUTER DOM 
+now we start using our react router dom -> go to mainjsx file and import browserrouter from our react router dom -> i.e -> 
+import {BrowserRouter} from "react-router-dom"
+
+=> And Now we wrap our app with this browser router component instead of strictquery mode component i.e -> 
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import App from './App.jsx'
+import './index.css'
+import {BrowserRouter} from "react-router-dom"
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <BrowserRouter>
+    <App />
+  </BrowserRouter>,
+)
+
+===> Now we have access to react-router-dom on all our projects 
+-------------------------------------------------------------------------------------------------------------------------------------
+
+
+                  **** After Setting Up Our BrowserRouter Now we start having our routing process ****
+
+Go to app.jsx-> and start by importing two things from our react-router-dom ===> routes and route i.e -> 
+import {Routes,Route} from "react-router-dom"
+
+-> Then in the return section of our component we return this routes component that will wrap the route component inside it and this
+route component we use will be responsible for the routing process and for each route we need path and element i.e-> 
+import React from 'react'
+import {Routes,Route} from "react-router-dom"
+
+const App = () => {
+  return (
+    <Routes>
+      <Route path='' element={ <component to be rendered />} />
+    </Routes>
+  )
+}
+
+export default App
+
+
+----------------------------->Now lets create 5 different routes for 5 different pages 
+
+Now create a new folder in src named pages -> and inside it now lets create 5 different components and now lets use them as our 
+application pages i.e -> CreateBooks.jsx , DeleteBook.jsx , EditBook.jsx , Home.jsx , ShowBook.jsx and do rafce in all of them 
+
+====================> Now go back to app.jsx and firstly we need to import them one by one there i.e ->
+import Home from './pages/Home'
+import CreateBooks from './pages/CreateBooks'
+import ShowBook from './pages/ShowBook'
+import EditBook from './pages/EditBook'
+import DeleteBook from './pages/DeleteBook'
+
+----------------------------------------------------------------------------------------------------------------------
+----------> Now lets use them in our routes ----------->
+
+firstly start by defining the path example in the path section / will denote home so we route the user to our home page and so on i.e->
+
+import React from 'react'
+import {Routes,Route} from "react-router-dom"
+import Home from './pages/Home'
+import CreateBooks from './pages/CreateBooks'
+import ShowBook from './pages/ShowBook'
+import EditBook from './pages/EditBook'
+import DeleteBook from './pages/DeleteBook'
+
+
+const App = () => {
+  return (
+    <Routes>
+      <Route path='/' element={<Home />} />
+      <Route path='/books/create' element={<CreateBooks/>} />
+      <Route path='/books/detail/:id' element={<ShowBook/>} />
+      <Route path='/books/edit/:id' element={<EditBook/>} />
+      <Route path='/books/delete/:id' element={<DeleteBook/>} />
+    </Routes>
+  )
+}
+
+export default App
+
+NOW we will test them one by one when we will start developing these pages 
+--------------------------------------------------------------------------------------------------------------------------------------
+
+ ----> Show Book List In React 
+
+ now install -> npm i axios react-icons
+  we use axios to send http requests and we use react icons for it 
+
+***==> Now make sure that our server is running so go to bakend terminal and if the server is not running do -> npm run dev and 
+once that connection to the database is established 
+
+we now firstly go to the index.js and comment out the cors policy code as our ip is different in this project than the one we defined 
+in cors policy -> 3000
+
+
+****----------------------> Before developing our home page  we 1stly NEED TO make a component for loading state this is a good idea to 
+show our user a spinner when it is a loading state 
+
+so Now go to the src folder and create a components folder inside it create a Spinner.jsx file -> do rafce in it 
+inside it have a class of the div ->     <div className='animate-ping w-16 h-16 m-8 rounded-full bg-sky-600'></div>
+Thats it now go to our home page and lets implement it 
+
+in our home page import useEffect and useState hooks from react -> import { useEffect,useState } from 'react'
+and import axios ->import axios from "axios"
+and import spinner ->import Spinner from '../components/Spinner';
+
+then we will be needing the link of react router dom ->import { Link } from 'react-router-dom';
+
+Then we need some icons i.e->
+import {AiOutlineEdit} from 'react-icons/ai';
+import {BsInfocircle} from 'react-icons/bs';
+import {MdOutlineAddBox , MdOutlineDelete} from "react-icons/md"; 
+
+Then we want to have 2 states for books and loading above the return statement 
+
+//we defined a state for our book initially using the useState hook  and another state for our loading with a default value of false  
+const [books , setBooks] = useState([]);
+const [loading , setLoading] = useState(false);
+
+example->
+import React from 'react';
+import { useEffect,useState } from 'react';
+import axios from "axios";
+//this spinner component is to show the loading state 
+import Spinner from '../components/Spinner';
+import { Link } from 'react-router-dom';
+
+//importing icons 
+import {AiOutlineEdit} from 'react-icons/ai';
+import {BsInfocircle} from 'react-icons/bs';
+import {MdOutlineAddBox , MdOutlineDelete} from "react-icons/md";
+
+
+const Home = () => {
+
+//we defined a state for our book initially using the useState hook  and another state for our loading with a default value of false  
+const [books , setBooks] = useState([]);
+const [loading , setLoading] = useState(false);
+
+  return (
+    <div>Home</div>
+  )
+}
+
+export default Home
+
+---------------------->Then we need useEffect to call our back end ------------------------------------
+
+  useEffect(() => {
+    setLoading(true);
+    axios
+      .get("http://localhost:5555/books")
+      .then((response) => {
+        setBooks(response.data.data);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.log(error);
+        setLoading(false);
+      });
+  }, []);
+
+this is our fetch part 
+
+now we handle our jsx -> 
+i.e-> 
+<div className="p-4">
+This is a div element with a className attribute set to "p-4". It likely applies padding to the content within this div.
+
+----
+ <div className="flex justify-between items-center">
+    <h1 className="text-3xl my-8"> Books List</h1>
+    <Link to="/books/create">
+      <MdOutlineAddBox className="text-sky-800 text-4xl" />
+    </Link>
+  </div>
+This section contains a nested div element with the Flexbox layout (flex), which has space-between alignment (justify-between) and 
+vertically centered items (items-center).
+Inside this div, there is an h1 element with the text "Books List" and styling classes text-3xl and my-8.
+Next is a Link component from react-router-dom that links to "/books/create". Inside the link, there's an icon (MdOutlineAddBox) 
+with styling classes for color and size.
+
+----
+  {loading ? (
+    <Spinner/>
+  ) : (
+    // ... rest of the code
+  )}
+This is a conditional rendering based on the value of the loading state. If loading is true, it renders a Spinner component. 
+Otherwise, it renders the rest of the code (the table and book list).
+
+----
+  <table className="w-full border-separate border-spacing-2">
+    <thead>
+      <tr>
+        <th className="border border-slate-600 rounded-md">No</th>
+        <th className="border border-slate-600 rounded-md">Title</th>
+        <th className="border border-slate-600 rounded-md max-md:hidden">
+          Author
+        </th>
+        <th className="border border-slate-600 rounded-md max-md:hidden">
+          Publish Year
+        </th>
+        <th className="border border-slate-600 rounded-md">Operations</th>
+      </tr>
+    </thead>
+    <tbody>
+      {books.map((book, index) => (
+        // ... mapping over the books array
+      ))}
+    </tbody>
+  </table>
+This section renders a table with various columns for book details.
+The header row (thead) includes columns for "No", "Title", "Author", "Publish Year", and "Operations".
+The body of the table (tbody) maps over the books array, generating a table row (tr) for each book.
+
+----
+      <tr key={book._id} className="h-8">
+        <td className="border border-slate-700 rounded-md text-center">
+          {index + 1}
+        </td>
+        <td className="border border-slate-700 rounded-md text-center">
+          {book.title}
+        </td>
+        <td className="border border-slate-700 rounded-md text-center max-md:hidden">
+          {book.author}
+        </td>
+        <td className="border border-slate-700 rounded-md text-center max-md:hidden">
+          {book.publishYear}
+        </td>
+        <td className="border border-slate-700 rounded-md text-center">
+          <div className="flex justify-center gap-x-4">
+            // ... links to book detail, edit, and delete
+          </div>
+        </td>
+      </tr>
+For each book, a table row (tr) is generated with a unique key based on the book's _id.
+It includes cells (td) for the book number, title, author, publish year, and a set of operations.
+The operations column contains three links (Link components) to navigate to the book's detail, edit, and delete pages.
+
+code till here----------------------->
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+//this spinner component is to show the loading state
+import Spinner from "../components/Spinner";
+import { Link } from "react-router-dom";
+
+//importing icons
+import { AiOutlineEdit } from "react-icons/ai";
+import { BsInfoCircle } from "react-icons/bs";
+import { MdOutlineAddBox, MdOutlineDelete } from "react-icons/md";
+
+const Home = () => {
+  //we defined a state for our book initially using the useState hook  and another state for our loading with a default value of false
+  const [books, setBooks] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setLoading(true);
+    axios
+      .get("http://localhost:5555/books")
+      .then((response) => {
+        console.log(response.data.data);
+        setBooks(response.data.data);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.log(error);
+        setLoading(false);
+      });
+  }, []);
+
+  
+
+  return (
+    <div className="p-4">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl my-8"> Books List</h1>
+        <Link to="/books/create">
+          <MdOutlineAddBox className="text-sky-800 text-4xl" />
+        </Link>
+      </div>
+
+      {loading ? (
+        <Spinner/>
+      ) : (
+        <table className="w-full border-separate border-spacing-2">
+          <thead>
+            <tr>
+              <th className="border border-slate-600 rounded-md">No</th>
+              <th className="border border-slate-600 rounded-md">Title</th>
+              <th className="border border-slate-600 rounded-md max-md:hidden">
+                Author
+              </th>
+              <th className="border border-slate-600 rounded-md max-md:hidden">
+                Publish Year
+              </th>
+              <th className="border border-slate-600 rounded-md">Operations</th>
+            </tr>
+          </thead>
+          <tbody>
+            {books.map((book, index) => (
+              <tr key={book._id} className="h-8">
+                <td className="border border-slate-700 rounded-md text-center">
+                  {index + 1}
+                </td>
+                <td className="border border-slate-700 rounded-md text-center">
+                  {book.title}
+                </td>
+                <td className="border border-slate-700 rounded-md text-center max-md:hidden">
+                  {book.author}
+                </td>
+                <td className="border border-slate-700 rounded-md text-center max-md:hidden">
+                  {book.publishYear}
+                </td>
+                <td className="border border-slate-700 rounded-md text-center">
+                  <div className="flex justify-center gap-x-4">
+                    
+                    <Link to={`/books/detail/${book._id}`}>
+                      <BsInfoCircle className="text-2xl text-green-800" />
+                    </Link>
+                   
+                    <Link to={`/books/edit/${book._id}`}>
+                      <AiOutlineEdit className="text-2xl text-yellow-600" />
+                    </Link>
+                    
+                    <Link to={`/books/delete/${book._id}`}>
+                      <MdOutlineDelete className="text-2xl text-red-600" />
+                    </Link>
+                  
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+};
+
+export default Home;
+
+now when we see a list of books being rendered on the frontend as a fetch response we are now good to go 
+
+--------------------------------------------------------------------------------------------------------------------------------
+
+****Show Book Details in React****
+now before anything we want to create a back button to go back to our book list -> so we go to the components folder and   create a 
+file names BackButton.jsx -> rafce in it . then we ->   import { Link } from 'react-router-dom'
+ and   BsArrowLeft from "react-icons/bs"
+
+now we have a Link and a arrow function argument as destination in it that redirects us to the home page 
+i.e-> 
+import React from "react";
+import { Link } from "react-router-dom";
+import { BsArrowLeft } from "react-icons/bs";
+
+const BackButton = ({ destination = "/" }) => {
+  return (
+    <div className="flex">
+      <Link
+        to={destination}
+        className="bg-sky-800 text-white px-4 py-1 rounded-lg w-fit"
+      >
+        <BsArrowLeft className="text-2xl" />
+      </Link>
+    </div>
+  );
+};
+
+export default BackButton;
+
+---------------------------------------------->
+Now we need to show this back button we just created -> so we go to ShowBook.jsx file and start by importing :
+ useEffect, useState ,axios , useParams and BackButton , Spinner
+ i.e-> 
+import React ,{useEffect , useState}from 'react'
+import axios from "axios";
+import { useParams } from 'react-router-dom';
+import BackButton from '../components/BackButton';
+import Spinner from "../components/Spinner";
+
+now in our book show component we need our book state to handle our book show 
+then we use a loading state to handle our loading time 
+
+then we destructure id from use params 
+
+Then we use the useEffect hook and interact -> 
+useEffect( () => {
+  setLoading(true);
+  axios
+     .get(`http://localhost:5555/books/${id}`)
+     .then((response)=> {
+      console.log(response)
+      setBook(response.data);
+      setLoading(false);
+     })
+     .catch((error)=> {
+      console.log(error);
+      setLoading(false);
+     })
+} , [])
+
+explanation of hooks usage above -> 
+useState:
+
+const [book, setBook] = useState({});: This hook is used to declare state variables in functional components. In this case, 
+it initializes the book state variable with an empty object and provides a function setBook to update its value. This state will 
+be used to store the data of the book fetched from the API.
+
+const [loading, setLoading] = useState(false);: Another state variable loading is initialized with false. It will be used to track 
+whether the data is still being loaded or has been fetched successfully.
+
+useEffect:
+
+useEffect(() => {...}, []): This hook is used for side effects in functional components. It runs the provided function as a side 
+effect after the component renders. The empty dependency array ([]) indicates that the effect should only run once when the component
+ mounts.
+
+Inside the useEffect, an axios request is made to fetch the book data based on the id parameter from the URL. When the data is 
+successfully fetched, it updates the book state, and if there's an error, it logs the error and updates the loading state accordingly.
+
+The purpose of using useEffect in this case is to initiate the data fetching when the component mounts.
+
+useParams:
+
+const { id } = useParams();: This hook is from the react-router-dom library and is used to access the parameters of the current route.
+ In this case, it extracts the id parameter from the route URL, which is used in the axios request to fetch the specific book's data.
+
+This hook allows the component to dynamically fetch the data for the specific book based on the id parameter in the URL.
+
+--------->
+Now we handle the jsx part ---> 
+so HERE  is the complete show book code that will ultimately render the book details ->
+
+import React ,{useEffect , useState}from 'react'
+import axios from "axios";
+import { useParams } from 'react-router-dom';
+import BackButton from '../components/BackButton';
+import Spinner from "../components/Spinner";
+
+
+const ShowBook = () => {
+
+const [book , setBook] = useState({});
+const [loading , setLoading] =  useState(false);
+const {id} = useParams();
+
+useEffect( () => {
+  setLoading(true);
+  axios
+     .get(`http://localhost:5555/books/${id}`)
+     .then((response)=> {
+      console.log(response)
+      setBook(response.data);
+      setLoading(false);
+     })
+     .catch((error)=> {
+      console.log(error);
+      setLoading(false);
+     })
+} , [])
+
+  return (
+    <div className='p-4'>
+      <BackButton/>
+      <h1 className='text-3xl my-4'>Show Book</h1>
+      {loading ? (
+           <Spinner/>
+      ) : (
+<div className='flex flex-col border-2 border-sky-400 rounded-x1 w-fit p-4'>
+ 
+ <div className='my-4'>
+  <span className='text-xl mr-4 text-gray-500'> Id  </span>
+  <span> {book._id}</span>
+ </div>
+
+ <div className='my-4'>
+  <span className='text-xl mr-4 text-gray-500'> Title  </span>
+  <span> {book.title}</span>
+ </div>
+
+ <div className='my-4'>
+  <span className='text-xl mr-4 text-gray-500'> Author  </span>
+  <span> {book.author}</span>
+ </div>
+
+ <div className='my-4'>
+  <span className='text-xl mr-4 text-gray-500'> Publish Year  </span>
+  <span> {book.publishYear }</span>
+ </div>
+
+ <div className='my-4'>
+  <span className='text-xl mr-4 text-gray-500'> Create Time  </span>
+  <span> {new Date(book.createdAt).toString()} </span>
+ </div>
+
+ <div className='my-4'>
+  <span className='text-xl mr-4 text-gray-500'> Last Update Time  </span>
+  <span> {new Date(book.updatedAt).toString()} </span>
+ </div>
+
+</div>
+      )}
+    </div>
+  )
+}
+
+export default ShowBook
+
+------------------------------------------------------------------------------------------------------------------------------------
+
+                                                   ***Create A Book In React***
+
+in createbook.jsx -> 
+we start by importing useState , 
+import BackButton from '../components/BackButton';
+import Spinner from '../components/Spinner';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+
+--------------->
+Then we start having our states and the handle post function using axios.post method for the form  above the return statement ->
+
+const[title , setTitle] = useState('')
+const[author , setAuthor] = useState('')
+const[publishYear , setPublishYear] = useState('')
+const[loading , setLoading] = useState(false)
+const navigate = useNavigate()
+
+const handleSaveBook = () =>{
+  const data = {
+    title,
+    author,
+    publishYear,
+  };
+  setLoading(true);
+  axios
+       .post("http://localhost:5555/books",data)
+       .then(()=>{
+        setLoading(false);
+        navigate("/");
+       })
+       .catch((error)=>{
+        setLoading(false);
+        alert("An Error Occurred Please Check Console!");
+        console.log(error);
+       });
+}
+
+
+--------------->
+Now we handle the jsx part ->
+return (
+    <div className="p-4">
+      <BackButton />
+      <h1 className="text-3xl my-4">Create Book</h1>
+      {loading ? <Spinner /> : ""}
+      <div className="flex flex-col border-2 border-sky-400 rounded-xl w-[600px] p-4 mx-auto">
+        <div className="my-4">
+          <label className="text-xl mr-4 text-gray-500"> Title </label>
+
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="border-2 border-gray-500 px-4 py-2 w-full"
+          />
+        </div>
+
+        <div className="my-4">
+          <label className="text-xl mr-4 text-gray-500"> Author </label>
+
+          <input
+            type="text"
+            value={author}
+            onChange={(e) => setAuthor(e.target.value)}
+            className="border-2 border-gray-500 px-4 py-2 w-full"
+          />
+        </div>
+
+        <div className="my-4">
+          <label className="text-xl mr-4 text-gray-500"> Publish Year </label>
+
+          <input
+            type="text"
+            value={publishYear}
+            onChange={(e) => setPublishYear(e.target.value)}
+            className="border-2 border-gray-500 px-4 py-2 w-full"
+          />
+        </div>
+
+        <button className="p-2 bg-sky-300 m-8" onClick={handleSaveBook}>
+          Save
+        </button>
+      </div>
+    </div>
+  );
+
+  //This will create a button on the right Side of the home page where all the books are there and when we press that button we
+   will be redirected to the create books page at this address  ->http://localhost:5173/books/create 
+
+   There we will be able to see a form -> with input fields of Title Author Publish Year and a Save button now when we fill this form 
+   and hit the save button we will trigger the axios.post method which will create a book and on the frontend we will be running a 
+   loading animation till the book is beinng created and if the book is created in the backend we will be redirected to our home page 
+   again and this new book will now reflect in our book list as an addition and if by any chance there is any sort of error in the
+   book creation process there will be a error alert popping out on the screen that says error check the console .
+
+Now if we see this book creation happening successfully we are good to go .
+
+
+This is the complete CreateBooks.jsx code -> 
+import React, { useState } from "react";
+import BackButton from "../components/BackButton";
+import Spinner from "../components/Spinner";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+
+const CreateBooks = () => {
+  const [title, setTitle] = useState("");
+  const [author, setAuthor] = useState("");
+  const [publishYear, setPublishYear] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleSaveBook = () => {
+    const data = {
+      title,
+      author,
+      publishYear,
+    };
+    setLoading(true);
+    axios
+      .post("http://localhost:5555/books", data)
+      .then(() => {
+        setLoading(false);
+        navigate("/");
+      })
+      .catch((error) => {
+        setLoading(false);
+        alert("An Error Occurred Please Check Console!");
+        console.log(error);
+      });
+  };
+
+  return (
+    <div className="p-4">
+      <BackButton />
+      <h1 className="text-3xl my-4">Create Book</h1>
+      {loading ? <Spinner /> : ""}
+      <div className="flex flex-col border-2 border-sky-400 rounded-xl w-[600px] p-4 mx-auto">
+        <div className="my-4">
+          <label className="text-xl mr-4 text-gray-500"> Title </label>
+
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="border-2 border-gray-500 px-4 py-2 w-full"
+          />
+        </div>
+
+        <div className="my-4">
+          <label className="text-xl mr-4 text-gray-500"> Author </label>
+
+          <input
+            type="text"
+            value={author}
+            onChange={(e) => setAuthor(e.target.value)}
+            className="border-2 border-gray-500 px-4 py-2 w-full"
+          />
+        </div>
+
+        <div className="my-4">
+          <label className="text-xl mr-4 text-gray-500"> Publish Year </label>
+
+          <input
+            type="text"
+            value={publishYear}
+            onChange={(e) => setPublishYear(e.target.value)}
+            className="border-2 border-gray-500 px-4 py-2 w-full"
+          />
+        </div>
+
+        <button className="p-2 bg-sky-300 m-8" onClick={handleSaveBook}>
+          Save
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default CreateBooks;
+
+-------------------------------------------------------------------------------------------------------------------------------------
+
+***Edit A book in React***
+
+in our edit book component we will fetch the book by its id from the backend and then after we will edit the book accordingly 
+
+we start by importing ->
+import React, { useState , useEffect } from "react";
+import BackButton from "../components/BackButton";
+import Spinner from "../components/Spinner";
+import axios from "axios";
+import { useNavigate , useParams } from "react-router-dom";
+
+-->
+then we have our state for our form and we apply useNavigate hook  and we also extract Id ->
+ const [title, setTitle] = useState("");
+  const [author, setAuthor] = useState("");
+  const [publishYear, setPublishYear] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const {id}= useParams();
+
+-->
+then we use useEffect hook to extract the specific id based book details ->
+  useEffect(()=>{
+setLoading(true);
+axios.get(`http://localhost:5555/books/${id}`)
+     .then((response)=>{
+      setAuthor(response.data.author)
+      setPublishYear(response.data.publishYear)
+      setTitle(response.data.title)
+      setLoading(false);
+     })
+     .catch((error)=>{
+      setLoading(false);
+      alert("An Error Occurred Please Check Console!");
+      console.log(error);
+     })
+  } , [])
+
+-->
+Then we make a handleEditBook function for our button to finnally use axios.put method to update / alter the existing book details->
+ const handleEditBook = () => {
+    const data = {
+      title,
+      author,
+      publishYear,
+    };
+    setLoading(true);
+    axios
+      .put(`http://localhost:5555/books/${id}`, data)
+      .then(() => {
+        setLoading(false);
+        navigate("/");
+      })
+      .catch((error) => {
+        setLoading(false);
+        alert("An Error Occurred Please Check Console!");
+        console.log(error);
+      });
+  };
+
+  Now we handle the jsx part ->
+   return (
+    <div className="p-4">
+      <BackButton />
+      <h1 className="text-3xl my-4">Edit Book</h1>
+      {loading ? <Spinner /> : ""}
+      <div className="flex flex-col border-2 border-sky-400 rounded-xl w-[600px] p-4 mx-auto">
+        <div className="my-4">
+          <label className="text-xl mr-4 text-gray-500"> Title </label>
+
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="border-2 border-gray-500 px-4 py-2 w-full"
+          />
+        </div>
+
+        <div className="my-4">
+          <label className="text-xl mr-4 text-gray-500"> Author </label>
+
+          <input
+            type="text"
+            value={author}
+            onChange={(e) => setAuthor(e.target.value)}
+            className="border-2 border-gray-500 px-4 py-2 w-full"
+          />
+        </div>
+
+        <div className="my-4">
+          <label className="text-xl mr-4 text-gray-500"> Publish Year </label>
+
+          <input
+            type="text"
+            value={publishYear}
+            onChange={(e) => setPublishYear(e.target.value)}
+            className="border-2 border-gray-500 px-4 py-2 w-full"
+          />
+        </div>
+
+        <button className="p-2 bg-sky-300 m-8" onClick={handleEditBook}>
+          Save
+        </button>
+      </div>
+    </div>
+  );
+
+==> till here we are having an update functionality for our book i.e -> on our home page when we tap on edit method we will be 
+redirected to -> editbook page with the id of that specific book that is ->
+ http://localhost:5173/books/edit/6596489219961fb6704a56bb 
+  and now when we alter the book details and then hit save we will effectively be hitting the 
+  axios.put(`http://localhost:5555/books/${id}`, data) api which will show a loading animation on screen at first and if the put 
+  request is successful we will be redirected to our home page and then we the book with our updated data will be reflected in the 
+  book list so if this is happening we are good to go .
+
+here is the complete code for EditBook.jsx->
+import React, { useState , useEffect } from "react";
+import BackButton from "../components/BackButton";
+import Spinner from "../components/Spinner";
+import axios from "axios";
+import { useNavigate , useParams } from "react-router-dom";
+
+const EditBook = () => {
+  const [title, setTitle] = useState("");
+  const [author, setAuthor] = useState("");
+  const [publishYear, setPublishYear] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const {id}= useParams();
+
+  useEffect(()=>{
+setLoading(true);
+axios.get(`http://localhost:5555/books/${id}`)
+     .then((response)=>{
+      setAuthor(response.data.author)
+      setPublishYear(response.data.publishYear)
+      setTitle(response.data.title)
+      setLoading(false);
+     })
+     .catch((error)=>{
+      setLoading(false);
+      alert("An Error Occurred Please Check Console!");
+      console.log(error);
+     })
+  } , [])
+
+  const handleEditBook = () => {
+    const data = {
+      title,
+      author,
+      publishYear,
+    };
+    setLoading(true);
+    axios
+      .put(`http://localhost:5555/books/${id}`, data)
+      .then(() => {
+        setLoading(false);
+        navigate("/");
+      })
+      .catch((error) => {
+        setLoading(false);
+        alert("An Error Occurred Please Check Console!");
+        console.log(error);
+      });
+  };
+
+  return (
+    <div className="p-4">
+      <BackButton />
+      <h1 className="text-3xl my-4">Edit Book</h1>
+      {loading ? <Spinner /> : ""}
+      <div className="flex flex-col border-2 border-sky-400 rounded-xl w-[600px] p-4 mx-auto">
+        <div className="my-4">
+          <label className="text-xl mr-4 text-gray-500"> Title </label>
+
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="border-2 border-gray-500 px-4 py-2 w-full"
+          />
+        </div>
+
+        <div className="my-4">
+          <label className="text-xl mr-4 text-gray-500"> Author </label>
+
+          <input
+            type="text"
+            value={author}
+            onChange={(e) => setAuthor(e.target.value)}
+            className="border-2 border-gray-500 px-4 py-2 w-full"
+          />
+        </div>
+
+        <div className="my-4">
+          <label className="text-xl mr-4 text-gray-500"> Publish Year </label>
+
+          <input
+            type="text"
+            value={publishYear}
+            onChange={(e) => setPublishYear(e.target.value)}
+            className="border-2 border-gray-500 px-4 py-2 w-full"
+          />
+        </div>
+
+        <button className="p-2 bg-sky-300 m-8" onClick={handleEditBook}>
+          Save
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default EditBook;
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+***Delete a book in REACT***
+
+we start by importing ->
+import React, { useState } from "react";
+import BackButton from "../components/BackButton";
+import Spinner from "../components/Spinner";
+import axios from "axios";
+import { useNavigate, useParams } from "react-router-dom";
+
+-->
+then we have  state for our form we apply navigate and destructure id from useParams hook ->
+ const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const { id } = useParams();
+
+-->
+Then we make the handleDeleteBook function which uses the axios.delete method to finally delete the book with the specific id ->
+  const handleDeleteBook = () => {
+    setLoading(true);
+    axios
+      .delete(`http://localhost:5555/books/${id}`)
+      .then(() => {
+        setLoading(false);
+        navigate("/");
+      })
+      .catch((error) => {
+        setLoading(false);
+        alert("An Error Occurred Please Check Console!");
+        console.log(error);
+      });
+  };  
+
+-->Then we handle the jsx part 
+return (
+    <div className="p-4">
+      <BackButton />
+
+      <h1 className="text-3xl my-4"> Delete Book </h1>
+      {loading ? <Spinner /> : ""}
+
+      <div className="flex flex-col items-center border-2 border-sky-400 rounded-xl w-[600px] p-8 mx-auto">
+        <h3 className="text-2xl">
+          {" "}
+          Are You Sure You Want To Delete This Book?{" "}
+        </h3>
+
+        <button
+          className="p-4 bg-red-600 text-white m-8 w-full"
+          onClick={handleDeleteBook}
+        >
+          Yes, Delete It
+        </button>
+      </div>
+    </div>
+  );
+
+
+Till here we will effectively be adding the delete functionality to our books list i.e -> on the home page when we tap on the
+delete option of a specific book we will be redirected to the delete book page with the specific id 
+ex-> http://localhost:5173/books/delete/659646cf19961fb6704a56b8 
+and there we will be seeing a confirm button if now we hit that button it will trigger the handleDeleteBook function which
+will ultimately use the axios.delete method to delete that record with that specific if and while the process we will be seeing 
+a spinning animation on the page and if now that specific book is deleted we will be redirected to our home page of show books 
+else if there is some error there will be a pop out message of error occurred check console and if this process is happening 
+till here we are good to go.
+
+here is the complete code of ->DeleteBook.jsx->
+import React, { useState } from "react";
+import BackButton from "../components/BackButton";
+import Spinner from "../components/Spinner";
+import axios from "axios";
+import { useNavigate, useParams } from "react-router-dom";
+
+const DeleteBook = () => {
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const { id } = useParams();
+
+  const handleDeleteBook = () => {
+    setLoading(true);
+    axios
+      .delete(`http://localhost:5555/books/${id}`)
+      .then(() => {
+        setLoading(false);
+        navigate("/");
+      })
+      .catch((error) => {
+        setLoading(false);
+        alert("An Error Occurred Please Check Console!");
+        console.log(error);
+      });
+  };
+
+  return (
+    <div className="p-4">
+      <BackButton />
+
+      <h1 className="text-3xl my-4"> Delete Book </h1>
+      {loading ? <Spinner /> : ""}
+
+      <div className="flex flex-col items-center border-2 border-sky-400 rounded-xl w-[600px] p-8 mx-auto">
+        <h3 className="text-2xl">
+          {" "}
+          Are You Sure You Want To Delete This Book?{" "}
+        </h3>
+
+        <button
+          className="p-4 bg-red-600 text-white m-8 w-full"
+          onClick={handleDeleteBook}
+        >
+          Yes, Delete It
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default DeleteBook;
+
+
+-------------------------------------------------------------------------------------------------------------------------------------
+//This step is optional and is solely focused on styling of the project 
+Now till here our books list is complete but as we want to make it more beautiful we do the following step from below ----->======>
+
+***Show Books List As A Card***
+We Want to have two different options to show the books list to the viewers -> Tables and Cards 
+till here we implemented a table so now lets add cards 
+
+-->Go to the components folder and create a new folder named home -> inside it create two files BooksCard.jsx & BooksTable.jsx-> rafce
+
+now first we need to refactor the table -> So go to Home.jsx file and import BooksCard & import BooksTable i.e=>
+import BooksTable from "../components/home/BooksTable"
+import BooksCard from "../components/home/BooksCard"
+
+now cut the table tag form that home page it will be the table below the spinner i.e you have to cut this -> 
+
+    <table className="w-full border-separate border-spacing-2">
+          <thead>
+            <tr>
+              <th className="border border-slate-600 rounded-md">No</th>
+              <th className="border border-slate-600 rounded-md">Title</th>
+              <th className="border border-slate-600 rounded-md max-md:hidden">
+                Author
+              </th>
+              <th className="border border-slate-600 rounded-md max-md:hidden">
+                Publish Year
+              </th>
+              <th className="border border-slate-600 rounded-md">Operations</th>
+            </tr>
+          </thead>
+          <tbody>
+            {books.map((book, index) => (
+              <tr key={book._id} className="h-8">
+                <td className="border border-slate-700 rounded-md text-center">
+                  {index + 1}
+                </td>
+                <td className="border border-slate-700 rounded-md text-center">
+                  {book.title}
+                </td>
+                <td className="border border-slate-700 rounded-md text-center max-md:hidden">
+                  {book.author}
+                </td>
+                <td className="border border-slate-700 rounded-md text-center max-md:hidden">
+                  {book.publishYear}
+                </td>
+                <td className="border border-slate-700 rounded-md text-center">
+                  <div className="flex justify-center gap-x-4">
+                    <Link to={`/books/detail/${book._id}`}>
+                      <BsInfoCircle className="text-2xl text-green-800" />
+                    </Link>
+
+                    <Link to={`/books/edit/${book._id}`}>
+                      <AiOutlineEdit className="text-2xl text-yellow-600" />
+                    </Link>
+
+                    <Link to={`/books/delete/${book._id}`}>
+                      <MdOutlineDelete className="text-2xl text-red-600" />
+                    </Link>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+
+--> Now paste this in the return section of our BooksTable.jsx file -> we need  books list so we receive it from props -> 
+so in the main arrow function of BooksTable pass in books as props -> {books} and also we are using Link tag and icons
+ so copy paste their import statement from our Home.jsx file i.e->
+ import { Link } from "react-router-dom";
+import { AiOutlineEdit } from "react-icons/ai";
+import { BsInfoCircle } from "react-icons/bs";
+import { MdOutlineAddBox, MdOutlineDelete } from "react-icons/md";
+
+const BooksTable = ({books}) => {}
+
+---->Now it is completed and inorder to use it in home page  we use this as component instead of the old table tag below the spinner
+ from where we cutted out this table tag we use <BooksTable/> component we just created and we imported it there before only so 
+ its ready to use and we also pass in books to it i.e ->         <BooksTable books={books}/>
+
+After refactoring now the table we need a state to control the type of show so now here in the Home.jsx lets add another state i.e->
+  const [showType, setShowType] = useState('table');
+
+-->
+then right after the main div that is the one with p-4  lets create another div and a button inside it i.e->
+<div  className="flex justify-center items-center gap-x-4">
+<button className="bg-sky-300 hover:bg-sky-600 px-4 py-1 rounded-lg" onClick={() => setShowType('table')}>
+Table
+</button>
+</div>
+
+-->
+then copy past the same button below the 1st button for card as above and Remember it should be inside the same div as the 1st button
+<button className="bg-sky-300 hover:bg-sky-600 px-4 py-1 rounded-lg" onClick={() => setShowType('Card')}>
+Card
+</button>
+
+
+----> Now as we have the functionality to change the design lets go loading inside it use the ternary operator to display accordingly 
+i.e->
+{loading ? (
+        <Spinner />
+      ) : showType === "table" ? (
+        <BooksTable books={books} />
+      ) : (
+        <BooksCard books={books} />
+      )}
+
+
+till here we if check the home page on the browser we will now have two new buttons showing with text of tables and cards and if we 
+select TABLE option the books will come in the shape of a table and if card the books will redirect to a card which we will define now 
+But Till here the Home.jsx code looks like this ->
+
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+//this spinner component is to show the loading state
+import Spinner from "../components/Spinner";
+import { Link } from "react-router-dom";
+
+//importing icons
+import { AiOutlineEdit } from "react-icons/ai";
+import { BsInfoCircle } from "react-icons/bs";
+import { MdOutlineAddBox, MdOutlineDelete } from "react-icons/md";
+
+//refactoring the table and designing the ui
+import BooksTable from "../components/home/BooksTable";
+import BooksCard from "../components/home/BooksCard";
+
+const Home = () => {
+  //we defined a state for our book initially using the useState hook  and another state for our loading with a default value of false
+  const [books, setBooks] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [showType, setShowType] = useState("table");
+
+  useEffect(() => {
+    setLoading(true);
+    axios
+      .get("http://localhost:5555/books")
+      .then((response) => {
+        console.log(response.data.data);
+        setBooks(response.data.data);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.log(error);
+        setLoading(false);
+      });
+  }, []);
+
+  return (
+    <div className="p-4">
+      <div className="flex justify-center items-center gap-x-4">
+        <button
+          className="bg-sky-300 hover:bg-sky-600 px-4 py-1 rounded-lg"
+          onClick={() => setShowType("table")}
+        >
+          Table
+        </button>
+
+        <button
+          className="bg-sky-300 hover:bg-sky-600 px-4 py-1 rounded-lg"
+          onClick={() => setShowType("card")}
+        >
+          Card
+        </button>
+      </div>
+
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl my-8"> Books List</h1>
+        <Link to="/books/create">
+          <MdOutlineAddBox className="text-sky-800 text-4xl" />
+        </Link>
+      </div>
+
+      {loading ? (
+        <Spinner />
+      ) : showType === "table" ? (
+        <BooksTable books={books} />
+      ) : (
+        <BooksCard books={books} />
+      )}
+    </div>
+  );
+};
+
+export default Home;
+
+------------------------------------------------------------------------------------------------------------------------------------
+
+Now we design the card -> in BooksCard.jsx file-> 
+
+we start by importing->
+import { Link } from "react-router-dom";
+import {PiBookOpenTextLight} from 'react-icons/pi';
+import {BiUserCircle} from "react-icons/bi";
+import {AiOutlineEdit  } from "react-icons/ai";
+import { BsInfoCircle } from "react-icons/bs";
+import {MdOutlineDelete} from "react-icons/md";
+
+-->then we receive books as props -> const BooksCard = ({books}) => {}
+
+then we handle our jsx so the complete code for BooksCard.jsx looks like this  -> 
+import { Link } from "react-router-dom";
+import { PiBookOpenTextLight } from "react-icons/pi";
+import { BiUserCircle } from "react-icons/bi";
+import { AiOutlineEdit } from "react-icons/ai";
+import { BsInfoCircle } from "react-icons/bs";
+import { MdOutlineDelete } from "react-icons/md";
+
+const BooksCard = ({ books }) => {
+  return (
+    <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {books.map((item) => (
+        <div
+          key={item._id}
+          className="border-2 border-gray-500 rounded-lg px-4 py-2 m-4 relative hover:shadow-xl"
+        >
+          <h2 className="absolute top-1 right-2 px-4 py-1 bg-red-300 rounded-lg">
+            {item.publishYear}
+          </h2>
+
+          <h4 className="my-2 text-gray-500">{item._id}</h4>
+
+          <div className="flex justify-start items-center gap-x-2">
+            <PiBookOpenTextLight className="text-red-300 text-2xl" />
+            <h2 className="my-1">{item.title}</h2>
+          </div>
+
+          <div className="flex justify-start items-center gap-x-2">
+            <BiUserCircle className="text-red-300 text-2xl" />
+            <h2 className="m-1"> {item.author} </h2>
+          </div>
+
+          <div className="flex justify-between items-center gap-x-2 mt-4 p-4">
+            <Link to={`/books/details/${item._id}`}>
+              <BsInfoCircle className="text-2xl text-green-800 hover:text-black" />
+            </Link>
+
+            <Link to={`/books/edit/${item._id}`}>
+              <AiOutlineEdit className="text-2xl text-yellow-600 hover:text-black" />
+            </Link>
+
+            <Link to={`/books/delete/${item._id}`}>
+              <MdOutlineDelete className="text-2xl text-red-600 hover:text-black" />
+            </Link>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+export default BooksCard;
+
+
+Till here if from our home page we choose the card option we will be seeing the book details in form of cards now as in this component 
+we are mapping over the books array and we are returning a div for each item and we use it as a single book card 
+------------------------------------------------------------------------------------------------------------------------------------
+
+***Make Book Card A Single Component***
+
+now lets cut all of the div part from inside the map function of the BooksCard.jsx file i.e->cut this part ->
+<div
+          key={item._id}
+          className="border-2 border-gray-500 rounded-lg px-4 py-2 m-4 relative hover:shadow-xl"
+        >
+          <h2 className="absolute top-1 right-2 px-4 py-1 bg-red-300 rounded-lg">
+            {item.publishYear}
+          </h2>
+
+          <h4 className="my-2 text-gray-500">{item._id}</h4>
+
+          <div className="flex justify-start items-center gap-x-2">
+            <PiBookOpenTextLight className="text-red-300 text-2xl" />
+            <h2 className="my-1">{item.title}</h2>
+          </div>
+
+          <div className="flex justify-start items-center gap-x-2">
+            <BiUserCircle className="text-red-300 text-2xl" />
+            <h2 className="m-1"> {item.author} </h2>
+          </div>
+
+          <div className="flex justify-between items-center gap-x-2 mt-4 p-4">
+            <Link to={`/books/details/${item._id}`}>
+              <BsInfoCircle className="text-2xl text-green-800 hover:text-black" />
+            </Link>
+
+            <Link to={`/books/edit/${item._id}`}>
+              <AiOutlineEdit className="text-2xl text-yellow-600 hover:text-black" />
+            </Link>
+
+            <Link to={`/books/delete/${item._id}`}>
+              <MdOutlineDelete className="text-2xl text-red-600 hover:text-black" />
+            </Link>
+          </div>
+        </div>
+
+
+-->
+and in our home folder make a new file  named BookSingleCard.jsx-> and rafce in it -> then paste that div part inside of the return 
+statement
+
+->
+pass in book as a prop->const BookSingleCard = ({book}) => {}
+
+now change the word item used anywhere in BookSingleCard.jsx to ---> book
+
+now we need to have all the icons and the links here so copy and paste this also from the bookscard.jsx i.e->
+import { Link } from "react-router-dom";
+import { PiBookOpenTextLight } from "react-icons/pi";
+import { BiUserCircle } from "react-icons/bi";
+import { AiOutlineEdit } from "react-icons/ai";
+import { BsInfoCircle } from "react-icons/bs";
+import { MdOutlineDelete } from "react-icons/md";
+
+
+--->
+Now its a reusable component it just needs a book prop -> 
+go back to BooksCard.jsx file -> import BookSingleCard from "./BookSingleCard";
+
+
+then in map section -> we return BookSingleCard component  with id i.e ->      <BookSingleCard key={item._id} book={item}/>
+ 
+till here bookscard.jsx complete code looks like this ->
+import { Link } from "react-router-dom";
+import { PiBookOpenTextLight } from "react-icons/pi";
+import { BiUserCircle } from "react-icons/bi";
+import { AiOutlineEdit } from "react-icons/ai";
+import { BsInfoCircle } from "react-icons/bs";
+import { MdOutlineDelete } from "react-icons/md";
+import BookSingleCard from "./BookSingleCard";
+
+const BooksCard = ({ books }) => {
+  return (
+    <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {books.map((item) => (
+        <BookSingleCard key={item._id} book={item}/>
+      ))}
+    </div>
+  );
+};
+
+export default BooksCard;
+
+-------------------------------------------------------------------------------------------------------------------------------------
+
+***Add Book Modal***
+we want to have a modal that shoes some info about each book 
+->
+in components -> home -> create a new file named ->BookModal.jsx -> rafce init 
+
+then we import -> 
+import { AiOutlineClose } from "react-icons/ai"
+import { PiBookOpenTextLight } from "react-icons/pi"
+import { BiUserCircle } from "react-icons/bi"
+
+->then we pass in props -> const BookModal = ({ book, onClose }) => {}
+
+->then we add classes to our div so our complete BookModal.jsx code looks like this till here -> 
+import { AiOutlineClose } from "react-icons/ai";
+import { PiBookOpenTextLight } from "react-icons/pi";
+import { BiUserCircle } from "react-icons/bi";
+
+const BookModal = ({ book, onClose }) => {
+  return (
+    <div
+      className="fixed bg-black bg-opacity-60 top-0 left-0 right-0 bottom-0 z-50 flex justify-center items-center"
+      onClick={onClose}
+    >
+      <div
+        onClick={(event) => event.stopPropagation()}
+        className="w-[600] max-w-full h-[400px] bg-white rounded-xl p-4 flex flex-col relative"
+      >
+        <AiOutlineClose
+          className="absolute right-6 top-6 text-3xl text-red-600 cursor-poiter"
+          onClick={onClose}
+        />
+
+        <h2 className="w-fit px-4 py-1 bg-red-300 rounded-lg">
+          {book.publishYear}
+        </h2>
+
+        <h4 className="my-2 text-gray-500">{book._id}</h4>
+
+        <div className="flex justify-start items-center gap-x-2">
+          <PiBookOpenTextLight className="text-red-300 text-2xl" />
+          <h2 className="my-1">{book.title}</h2>
+        </div>
+
+        <div className="flex justify-start items-center gap-x-2">
+          <BiUserCircle className="text-red-300 text-2xl" />
+          <h2 className="m-1"> {book.author} </h2>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default BookModal;
+
+
+---------------------> 
+
+Now we are ready to use our modal 
+go to book single card .jsx and also import bishow -> import { BiUserCircle , BiShow} from "react-icons/bi";
+import useState and BookModal
+
+then we need a state for our book modal ->    const [showModal , setShowModal] = useState(false);
+
+now above Links division ->
+ <BiShow className="text-3xl text-blue-800 hover:text-black cursor-pointer" onClick={() => setShowModal(true) }/>
+
+
+now before the last div of the component ->
+ {
+        showModal && (
+            <BookModal book={book} onClose={() => setShowModal(false)}/>
+        )
+      }
+
+
+And thats it till here the code will add a eye button/option to our card that when tapped will open a modal and the data will
+be displayed        
+
+-------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
